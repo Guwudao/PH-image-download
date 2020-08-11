@@ -16,10 +16,11 @@ proxy = {
 domain = "https://cn.pornhub.com"
 download_failed_list = []
 
-def pornhub_get_page_list():
+
+def pornhub_get_page_list(num):
     image_page_url = []
     try:
-        main_url = domain + "/album/53592531"
+        main_url = domain + f"/album/{num}"
         image_page_url.append(main_url)
         html = requests.get(main_url, headers=headers, timeout=180, proxies=proxy)
         soup = BeautifulSoup(html.text, "html.parser")
@@ -35,12 +36,11 @@ def pornhub_get_page_list():
         return []
 
 
-def get_all_image_url(pageList):
+def get_all_image_url(page_list):
     url_list = []
-    for page_url in pageList:
+    for page_url in page_list:
         try:
             html = requests.get(page_url, headers=headers, timeout=180, proxies=proxy)
-            # print(html.text)
             soup = BeautifulSoup(html.text, "html.parser")
             div_list = soup.find_all("div", attrs={"class": "js_lazy_bkg photoAlbumListBlock"})
             url_list = url_list + [domain + div.a.get("href") for div in div_list]
@@ -49,7 +49,7 @@ def get_all_image_url(pageList):
             print("get image url error: ", e)
 
     print(f"总张数：{len(url_list)}")
-    print(url_list)
+    # print(url_list)
     return url_list
 
 
@@ -68,15 +68,15 @@ def image_download(info):
     if not os.path.exists(title):
         os.mkdir(title)
 
-    fileName = title + "_" + str(index)
+    file_name = title + "_" + str(index)
 
     if len(div_list) > 0:
         img_url = div_list[0].img.get("src")
         try:
-            with open(f"./{title}/{fileName}.jpg", "wb") as f:
+            with open(f"./{title}/{file_name}.jpg", "wb") as f:
                 resp = requests.get(img_url, timeout=180, proxies=proxy)
                 f.write(resp.content)
-                print("%s"%(threading.current_thread().name), f"下载完成： {url}", index)
+                print("%s" % (threading.current_thread().name), f"下载完成： {url}", index)
         except Exception as e:
             print("download error: ", e, url)
             download_failed_list.append(url)
@@ -84,7 +84,8 @@ def image_download(info):
 
 if __name__ == '__main__':
 
-    page_list = pornhub_get_page_list()
+    num = int(input("请输入相册编号："))
+    page_list = pornhub_get_page_list(num)
     if len(page_list) > 0:
         image_list = get_all_image_url(page_list)
         n = 0
@@ -92,7 +93,9 @@ if __name__ == '__main__':
             for image_url in image_list:
                 n += 1
                 pool.map(image_download, [(image_url, n)])
+        print("========================== 下载完成 ==========================")
     else:
         print("abort by page list not complete")
 
-    print(f"download failed list: {download_failed_list}")
+    if len(download_failed_list) > 0:
+        print(f"download failed list: {download_failed_list}")
