@@ -33,8 +33,11 @@ def key_word_search(key_word):
     li_list = soup.find_all("li", class_="photoAlbumListContainer")
 
     album_list = [li.a.get("href") for li in li_list]
-    # print(album_list)
     print(f"========================== 当前相册个数: {len(album_list)} ==========================")
+
+    title_list = [title_tag.get_text() for title_tag in soup.find_all("div", class_="title-album")][4:-1]
+    print(f"========================== 相册列表: {title_list} ==========================")
+
     count = int(input("需要下载的相册个数："))
     if count <= len(album_list):
         albums = album_list[0:count]
